@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huffman Text Compressor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        button {
+            margin-right: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Huffman Text Compressor</h1>
+        <form id="form">
+            <label for="text">Enter Text:</label>
+            <textarea id="text" placeholder="Type your text here"></textarea>
+            <br>
+            <button id="compress">Compress</button>
+            <button id="decompress">Decompress</button>
+        </form>
+        <div id="results" style="display:none;">
+            <h2>Results:</h2>
+            <p><strong>Compressed Text:</strong> <span id="compressed-text"></span></p>
+            <p><strong>Decompressed Text:</strong> <span id="decompressed-text"></span></p>
+            <p><strong>Compression Ratio:</strong> <span id="compression-ratio"></span>%</p>
+            <h3>Frequency Table</h3>
+            <table id="frequency-table">
+                <thead>
+                    <tr>
+                        <th>Character</th>
+                        <th>Frequency</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        let treeRepresentation = ""; // Store the Huffman tree representation globally
+        let compressedText = ""; // Store the compressed text globally
+    
+        document.getElementById("compress").addEventListener("click", async (e) => {
+            e.preventDefault();
+            const text = document.getElementById("text").value;
+    
+            const response = await fetch("/compress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text }),
+            });
+    
+            const data = await response.json();
+            if (response.ok) {
+                compressedText = data.compressed_text;
+                treeRepresentation = data.tree_representation;
+    
+                document.getElementById("compressed-text").textContent = compressedText;
+                document.getElementById("compression-ratio").textContent = data.compression_ratio;
+    
+                const freqTable = document.getElementById("frequency-table").querySelector("tbody");
+                freqTable.innerHTML = "";
+                for (const [char, freq] of Object.entries(data.frequency_table)) {
+                    const row = `<tr><td>${char}</td><td>${freq}</td></tr>`;
+                    freqTable.innerHTML += row;
+                }
+                document.getElementById("results").style.display = "block";
+            } else {
+                alert(data.error || "Compression failed!");
+            }
+        });
+    
+        document.getElementById("decompress").addEventListener("click", async (e) => {
+            e.preventDefault();
+    
+            if (!compressedText || !treeRepresentation) {
+                alert("Please compress some text before trying to decompress!");
+                return;
+            }
+    
+            const response = await fetch("/decompress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ compressed_text: compressedText, tree_representation: treeRepresentation }),
+            });
+    
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById("decompressed-text").textContent = data.decompressed_text;
+            } else {
+                alert(data.error || "Decompression failed!");
+            }
+        });
+    </script>
+    
+</body>
+</html>
